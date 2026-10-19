@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>6f1c1d0e-3f6a-4a52-9a3e-0a1b2c3d4e5f</SharedGUID>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Enums.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PluginStepAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DvxSdkInfo.cs" />
+  </ItemGroup>
+</Project>

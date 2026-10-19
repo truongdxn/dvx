@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>6f1c1d0e-3f6a-4a52-9a3e-0a1b2c3d4e5f</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="Sdk.projitems" Label="Shared" />
+</Project>
