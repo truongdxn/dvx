@@ -1,0 +1,7 @@
+<Project>
+  <!-- Minimal consumer props. No TreatWarningsAsErrors on purpose: the analyzer warning must stay visible. -->
+  <PropertyGroup>
+    <LangVersion>7.3</LangVersion>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

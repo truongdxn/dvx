@@ -1,0 +1,6 @@
+<Project>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.CrmSdk.CoreAssemblies" Version="9.0.2.60" />
+    <PackageVersion Include="MSTest" Version="4.5.1" />
+  </ItemGroup>
+</Project>

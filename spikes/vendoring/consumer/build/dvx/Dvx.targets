@@ -1,0 +1,22 @@
+<Project>
+  <!-- Vendored by dvx. Runs no dvx command during build. -->
+  <PropertyGroup>
+    <DvxAnalyzerPath>$(MSBuildThisFileDirectory)analyzers/Dvx.Analyzers.dll</DvxAnalyzerPath>
+  </PropertyGroup>
+
+  <!-- Plugin projects: <DvxProjectKind>Plugin</DvxProjectKind> (SPEC 4.2). Test projects: <DvxProjectKind>Test</DvxProjectKind>. -->
+  <ItemGroup Condition="'$(DvxProjectKind)' == 'Plugin' Or '$(DvxProjectKind)' == 'Test'">
+    <Analyzer Include="$(DvxAnalyzerPath)" />
+  </ItemGroup>
+
+  <!-- DvxSpikeNoIvt is a spike-only switch used to show the negative (CS0122) case. -->
+  <ItemGroup Condition="'$(DvxProjectKind)' == 'Plugin' And '$(DvxSpikeNoIvt)' != 'true'">
+    <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+  </ItemGroup>
+
+  <!-- Under central package management the version comes from a PackageVersion item. -->
+  <ItemGroup Condition="'$(DvxProjectKind)' == 'Test'">
+    <PackageVersion Include="FakeItEasy" Version="9.0.1" />
+    <PackageReference Include="FakeItEasy" />
+  </ItemGroup>
+</Project>
