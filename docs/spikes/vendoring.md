@@ -29,7 +29,7 @@ Code: `spikes/vendoring/` (throwaway, not in `dvx.sln`). Re-run steps in its REA
 
 ## Result
 
-1. Analyzer diagnostic, clean `dotnet build Contoso.sln` (0 errors, 2 warnings, no CS8032, no AD0001; also
+1. Analyzer diagnostic (output below is trimmed: paths shortened, summary lines kept), clean `dotnet build Contoso.sln` (0 errors, 2 warnings, no CS8032, no AD0001; also
    zero matches for either id with `-v:d`):
 
 ```
@@ -54,10 +54,20 @@ Build FAILED.
    `Contoso.Plugins` assets file has 0 occurrences of `FakeItEasy`. The test compiles
    `A.Fake<Microsoft.Xrm.Sdk.IOrganizationService>()`, which proves the reference arrives.
 
-4. Analyzer loaded from the vendored path. csc received
+4. Analyzer loaded from the vendored path (raw lines; paths shortened to `.../` for the repo root). csc received
    `/analyzer:.../consumer/build/dvx/analyzers/Dvx.Analyzers.dll`; `dotnet build -getItem:Analyzer` shows
    Identity = that path with `DefiningProjectFullPath` = `build/dvx/Dvx.targets`. The same item appears in the
-   test project. The diagnostics in check 1 prove it executed.
+   test project. The diagnostics in check 1 prove it executed. Raw output:
+
+```
+$ dotnet build src/Contoso.Plugins.Tests -getItem:Analyzer | grep -E '"Identity"|DefiningProjectFullPath'
+ "Identity": ".../consumer/build/dvx/analyzers/Dvx.Analyzers.dll",
+ "DefiningProjectFullPath": ".../consumer/build/dvx/Dvx.targets",
+$ dotnet build Contoso.sln -v:d | grep -oE "/analyzer:[^ ]*Dvx[^ ]*" | sort | uniq -c
+      2 /analyzer:.../consumer/build/dvx/analyzers/Dvx.Analyzers.dll      (one per project)
+$ dotnet build Contoso.sln -v:d | grep -cE "CS8032|AD0001"
+0
+```
 
 5. Root `dotnet build`: 0 warnings, 0 errors. Root `dotnet test`: 1 passed (`Dvx.Cli.Tests`). The spikes are
    not in `dvx.sln`; the consumer's own `Directory.Build.props` stops the root props from applying to it.
@@ -79,8 +89,9 @@ shows CS8032 or the analyzer does not load; fallback in that case is to rebuild 
 | FakeItEasy only in test project, central package management on | CONFIRMED |
 | Test execution on net462 (Windows) | NOT CONFIRMED |
 | Visual Studio 2026 (Error List, IntelliSense, no CS8032) | NOT CONFIRMED. Steps: spikes/vendoring/README.md |
+| Loading on the VS 2026 host: the csc 4.11 result above does not cover it, because VS runs its own Roslyn host (and its own analyzer loading, e.g. for IntelliSense) | NOT CONFIRMED (same row) |
 | Real CI image (`dotnet --info`, build, test, warnings as seen) | NOT CONFIRMED. Steps: spikes/vendoring/README.md |
-| Consumer without central package management | INFERRED NOT WORKING (see proposal 3) |
+| FakeItEasy handling in the three consumer cases (CPM without pin, CPM with pin, no CPM), old unconditional targets failing and conditional targets passing | CONFIRMED (Fix round 1 below) |
 
 ## Proposals for Task 18 (Dvx.targets shape)
 
@@ -91,12 +102,46 @@ shows CS8032 or the analyzer does not load; fallback in that case is to rebuild 
    `Test`. One condition each (`Plugin Or Test` for the analyzer, `Plugin` for IVT, `Test` for FakeItEasy).
    `dvx new` writes the marker for both. `IsTestProject` was not used because it is set by the test package
    targets (inferred, not checked), and the explicit marker is symmetric with Plugin. Update SPEC 4.2 if adopted.
-3. FakeItEasy version: under central package management, `Dvx.targets` adds a `PackageVersion` item plus a
-   version-less `PackageReference` (works, confirmed). A consumer with central package management OFF would hit
-   NU1008-style or missing-version errors in the other direction (version-less reference). Task 18 should either
-   require central package management in the consumer template (matches the dvx repo itself) or add
-   `Version` conditioned on `'$(ManagePackageVersionsCentrally)' != 'true'`. Untested.
+3. FakeItEasy version: a single unconditional `PackageVersion` + version-less `PackageReference` (the first
+   spike version) is wrong for two of three consumers. Reproduced in the scratchpad against the first version
+   of `Dvx.targets`:
+
+```
+(a) CPM consumer that already pins FakeItEasy in its own Directory.Packages.props
+    default:                       warning NU1506: Duplicate 'PackageVersion' items found. Remove the duplicate items or use the Update functionality   (build succeeded)
+    with TreatWarningsAsErrors:    error NU1506: Warning As Error: Duplicate 'PackageVersion' items found. ...   (Build FAILED)
+(b) Consumer without CPM (Version= attributes in its csproj files)
+    default:                       warning NU1604: Project dependency FakeItEasy does not contain an inclusive lower bound. Include a lower bound ...   (build succeeded)
+    with TreatWarningsAsErrors:    error NU1604: Warning As Error: Project dependency FakeItEasy does not contain an inclusive lower bound. ...   (Build FAILED)
+```
+
+   In (a) the vendored pin also silently competes with the consumer's own pin. In (b) the vendored
+   `PackageVersion` is ignored because CPM is off. NU1008 is the opposite case (a `Version=` attribute under
+   CPM) and would be triggered by a naive "always add Version" fix. `Dvx.targets` therefore handles three cases
+   (implemented in the spike file, all three build; NU1506/NU1604 escalated with
+   `-p:WarningsAsErrors=NU1506%3BNU1604`, 0 errors, only the 2 intended DVXSPIKE001 warnings):
+
+   | Consumer | Dvx.targets adds |
+   |---|---|
+   | CPM, no FakeItEasy pin | `PackageVersion FakeItEasy 9.0.1` + version-less `PackageReference` |
+   | CPM, consumer already pins it | version-less `PackageReference` only; the consumer's pin wins |
+   | No CPM | `PackageReference FakeItEasy Version="9.0.1"` |
+
+   Pin detection is `@(PackageVersion->WithMetadataValue('Identity','FakeItEasy'))` collected in a private item
+   (`%(Identity)` in an item condition outside a target is rejected with MSB4190). It relies on
+   `Directory.Packages.props` being evaluated before `Dvx.targets`, which holds for the SDK import order.
+   In the pinned case the consumer's version may differ from 9.0.1; whether that is acceptable (the Dvx.Testing
+   helpers are compiled against 9.0.1) is a Task 18 decision. Not tested: a consumer pin using `VersionOverride`
+   on its own reference, and a floating or range pin.
 4. The analyzer project needs `NoWarn RS2008` (or release-tracking files) under `TreatWarningsAsErrors` with
    `EnforceExtendedAnalyzerRules`; the real `Dvx.Analyzers` will hit this.
 5. A consumer with `TreatWarningsAsErrors=true` turns every Dvx analyzer warning into a build break; this is
    intended for the real rule set but the template should say so.
+6. `DvxSpikeNoIvt` in the spike `Dvx.targets` is spike-only (it exists to show the CS0122 negative case). It must
+   not ship in the Task 18 file; the shipped `InternalsVisibleTo` item is conditioned on `DvxProjectKind` only.
+
+## Fix round 1
+
+Changes after review: proposal 3 corrected and implemented (three FakeItEasy cases, reproduced failures
+above), `DvxSpikeNoIvt` marked spike-only, raw output pasted for the analyzer-path check, and the VS 2026
+host row added to the table.

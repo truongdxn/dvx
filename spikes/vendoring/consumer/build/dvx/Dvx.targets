@@ -9,14 +9,27 @@
     <Analyzer Include="$(DvxAnalyzerPath)" />
   </ItemGroup>
 
-  <!-- DvxSpikeNoIvt is a spike-only switch used to show the negative (CS0122) case. -->
+  <!-- SPIKE-ONLY: DvxSpikeNoIvt exists solely to demonstrate the CS0122 negative case.
+       It must NOT ship in the real Dvx.targets (Task 18). -->
   <ItemGroup Condition="'$(DvxProjectKind)' == 'Plugin' And '$(DvxSpikeNoIvt)' != 'true'">
     <InternalsVisibleTo Include="$(AssemblyName).Tests" />
   </ItemGroup>
 
-  <!-- Under central package management the version comes from a PackageVersion item. -->
-  <ItemGroup Condition="'$(DvxProjectKind)' == 'Test'">
+  <!-- FakeItEasy for test projects, three consumer cases:
+       1. central package management, consumer has no FakeItEasy pin: vendor a PackageVersion + version-less reference
+       2. central package management, consumer already pins FakeItEasy: version-less reference only (consumer pin wins;
+          a second PackageVersion would raise NU1506)
+       3. no central package management: reference with a Version attribute (version-less would raise NU1604) -->
+  <ItemGroup Condition="'$(DvxProjectKind)' == 'Test' And '$(ManagePackageVersionsCentrally)' == 'true'">
+    <_DvxFakeItEasyPin Include="@(PackageVersion->WithMetadataValue('Identity', 'FakeItEasy'))" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(DvxProjectKind)' == 'Test' And '$(ManagePackageVersionsCentrally)' == 'true' And '@(_DvxFakeItEasyPin)' == ''">
     <PackageVersion Include="FakeItEasy" Version="9.0.1" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(DvxProjectKind)' == 'Test' And '$(ManagePackageVersionsCentrally)' == 'true'">
     <PackageReference Include="FakeItEasy" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(DvxProjectKind)' == 'Test' And '$(ManagePackageVersionsCentrally)' != 'true'">
+    <PackageReference Include="FakeItEasy" Version="9.0.1" />
   </ItemGroup>
 </Project>
