@@ -77,6 +77,15 @@ dotnet test
 ## Status
 
 - Design: SPEC v2 — SP0 + SP1 detailed, SP2–SP4 outlined; awaiting review
-- Current milestone: M0 — repo scaffold
-- Completed: none
+- Current milestone: next is S-A + S-F (spikes A and F, gate for M1)
+- Completed: M0 — repo scaffold (`dotnet build` 0 warnings; `dotnet test` green)
+- M0 notes:
+  - `Dvx.Plugin.Sdk.Tests` (net462) builds everywhere but runs only on Windows (`IsTestProject` false
+    elsewhere). On non-Windows, net462 builds use the SDK's implicit
+    `Microsoft.NETFramework.ReferenceAssemblies` (approved, build-only).
+  - `.shproj` files are not in `dvx.sln` (`dotnet sln add` rejects them outside Visual Studio); the
+    `.projitems` imports compile their content. Add them from VS on Windows if wanted.
+  - Placeholder tests use `Assert.IsNotNull(...)`: `Assert.IsTrue(true)` fails MSTEST0032 under
+    warnings as errors.
+  - Not yet added: `packages.lock.json` / locked restore, VSIX packages (Spike D).
 - Open questions: SPEC §15
