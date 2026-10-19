@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <!-- net462 tests run only on Windows; elsewhere they build but dotnet test skips them. -->
+    <IsTestProject Condition="'$(OS)' != 'Windows_NT'">false</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+  </ItemGroup>
+  <Import Project="..\..\src\Dvx.Plugin.Sdk\Dvx.Plugin.Sdk.projitems" Label="Shared" />
+  <Import Project="..\..\src\Dvx.Testing\Dvx.Testing.projitems" Label="Shared" />
+</Project>
