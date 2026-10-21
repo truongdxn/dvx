@@ -654,6 +654,11 @@ Each milestone ends with green build and tests and a commit. One milestone per s
 ## 15. Open questions
 
 - Step name format and naming conventions (D7, separate session).
+- Steps on global messages (no primary entity, Appendix A case 7): section 7 defines no `{entity}`
+  value for them. Until decided, dvx rejects a null, empty or `none` primary entity (DVX184).
+- Diagnostic codes added during M2 and not yet listed in section 10: DVX090 (CLI usage), DVX180–DVX185
+  (reading / build: unresolved reference, build failure, unexpected attribute shape, missing
+  `DvxSdkInfo`, invalid identity input, non-instantiable plugin type), DVX190 (internal / duplicate ID).
 - SP2: Q7 and the items in section 14.1.
 - SP3 / SP4: diagnostics data model; phase 2 feed for `Dvx.Cli`; `dvx mcp` timing.
 
@@ -810,7 +815,9 @@ Section numbers cited in D1–D29 refer to SPEC v1.1. Struck-through decisions a
 
 ### To ask
 
-SP1: none.
+SP1:
+- Identity key for steps on global messages (section 15).
+- Confirm the M2 diagnostic codes DVX090, DVX180–DVX185, DVX190 (section 15).
 
 SP2:
 - Q7 Where is solution XML generated (CI vs developer machine; options A/C/D)

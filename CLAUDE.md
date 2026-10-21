@@ -81,8 +81,15 @@ dotnet test tests/Dvx.Plugin.Sdk.Tests -p:IsTestProject=true
 ## Status
 
 - Design: SPEC v2 — SP0 + SP1 detailed, SP2–SP4 outlined; awaiting review
-- Current milestone: M2 code complete (`Identity`, `AttributeReader`, `DesiredState`, `describe`, command
-  log); awaiting user review. Next is M3
+- Current milestone: next is M3 (offline verify + analyzers); gate M2 met. M4 (auth/env) also
+  unblocked by M2
+- Completed: M2 — UUID v5 identity (frozen, D33; golden + tr-TR freeze guards), `AttributeReader`
+  (MetadataLoadContext; references via `dotnet msbuild -getItem:ReferencePath`), `DesiredStateBuilder`,
+  `dvx describe`, JSONL command log, `DiagnosticCodes`
+  - Open (SPEC §15 / To ask): identity key for global-message steps (rejected for now, DVX184);
+    confirm codes DVX090, DVX180–DVX185, DVX190
+  - Carried into the plan: Task 9 (same-key duplicates as user diagnostics, stage/mode rule,
+    shuffle test), Task 15 (field normalization, image `messagepropertyname`, signed sample)
 - Completed: M1 — SDK attributes + runtime base classes, `Dvx.Testing` (41 net462 tests green on
   mono and on Windows, user-confirmed)
 - Repo `nuget.config` clears machine feeds and maps every package to nuget.org (NU1507 fix for
