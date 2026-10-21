@@ -79,8 +79,8 @@ dotnet test tests/Dvx.Plugin.Sdk.Tests -p:IsTestProject=true
 ## Status
 
 - Design: SPEC v2 — SP0 + SP1 detailed, SP2–SP4 outlined; awaiting review
-- Current milestone: next is M2 (`AttributeReader`, `Identity`, `DesiredState`, `describe`); gate M1
-  met
+- Current milestone: M2 code complete (`Identity`, `AttributeReader`, `DesiredState`, `describe`, command
+  log); awaiting user review. Next is M3
 - Completed: M1 — SDK attributes + runtime base classes, `Dvx.Testing` (41 net462 tests green on
   mono and on Windows, user-confirmed)
 - Repo `nuget.config` clears machine feeds and maps every package to nuget.org (NU1507 fix for

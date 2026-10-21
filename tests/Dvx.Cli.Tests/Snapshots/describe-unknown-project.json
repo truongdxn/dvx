@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "DVX001",
+      "severity": "error",
+      "message": "Project file 'does/not/exist.csproj' does not exist.",
+      "file": null,
+      "line": null
+    }
+  ]
+}

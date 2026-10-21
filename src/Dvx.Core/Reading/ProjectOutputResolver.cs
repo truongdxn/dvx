@@ -17,8 +17,20 @@ public sealed record ProjectOutput(string TargetPath, IReadOnlyList<string> Refe
 /// </summary>
 public static class ProjectOutputResolver
 {
-    public static ProjectOutput Resolve(string projectPath, bool build)
+    /// <summary>Upper bound for one MSBuild run; the process tree is killed when it is exceeded.</summary>
+    internal static readonly TimeSpan BuildTimeout = TimeSpan.FromMinutes(10);
+
+    public static ProjectOutput Resolve(string projectPath, bool build) => Resolve(projectPath, build, BuildTimeout);
+
+    internal static ProjectOutput Resolve(string projectPath, bool build, TimeSpan timeout)
     {
+        ArgumentException.ThrowIfNullOrEmpty(projectPath);
+        projectPath = Path.GetFullPath(projectPath);
+        if (!File.Exists(projectPath))
+        {
+            throw new DvxReadException("DVX181", "Project file '" + projectPath + "' does not exist.");
+        }
+
         string target = build ? "Build" : "ResolveAssemblyReferences";
         string dotnet = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") is { Length: > 0 } host ? host : "dotnet";
 
@@ -44,8 +56,25 @@ public static class ProjectOutputResolver
                 ?? throw new DvxReadException("DVX181", "Could not start '" + dotnet + "'.");
             // Read stderr asynchronously so a full pipe cannot block the child.
             var stderrTask = process.StandardError.ReadToEndAsync();
-            stdout = process.StandardOutput.ReadToEnd();
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            if (!process.WaitForExit(timeout))
+            {
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+                {
+                    // The process ended on its own between the timeout and the kill.
+                }
+
+                throw new DvxReadException("DVX181",
+                    "MSBuild for '" + projectPath + "' did not finish within " + timeout.TotalSeconds.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " seconds and was stopped.");
+            }
+
+            // Parameterless WaitForExit lets the redirected streams drain completely.
             process.WaitForExit();
+            stdout = stdoutTask.GetAwaiter().GetResult();
             stderr = stderrTask.GetAwaiter().GetResult();
             exitCode = process.ExitCode;
         }

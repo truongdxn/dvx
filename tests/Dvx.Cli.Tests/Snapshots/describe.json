@@ -1,0 +1,177 @@
+{
+  "assemblyName": "Contoso.Plugins",
+  "components": [
+    {
+      "kind": "Assembly",
+      "id": "5a4ef0f0-f377-578d-9bed-d4d804d84373",
+      "key": "asm:Contoso.Plugins",
+      "parentId": null,
+      "fields": {
+        "culture": "neutral",
+        "name": "Contoso.Plugins",
+        "publickeytoken": "",
+        "version": "1.0.0.0"
+      }
+    },
+    {
+      "kind": "PluginType",
+      "id": "3377f98f-ce1f-5677-89dd-468a04ee35f5",
+      "key": "type:Contoso.Plugins/Contoso.Plugins.AccountUpdatePreOperation",
+      "parentId": "5a4ef0f0-f377-578d-9bed-d4d804d84373",
+      "fields": {
+        "name": "Contoso.Plugins.AccountUpdatePreOperation",
+        "typename": "Contoso.Plugins.AccountUpdatePreOperation"
+      }
+    },
+    {
+      "kind": "PluginType",
+      "id": "86ec919d-9350-508f-98a1-d1982b9b2812",
+      "key": "type:Contoso.Plugins/Contoso.Plugins.CalculateDiscountApi",
+      "parentId": "5a4ef0f0-f377-578d-9bed-d4d804d84373",
+      "fields": {
+        "name": "Contoso.Plugins.CalculateDiscountApi",
+        "typename": "Contoso.Plugins.CalculateDiscountApi"
+      }
+    },
+    {
+      "kind": "PluginType",
+      "id": "291b3596-0bcd-5547-aa23-d330bb9e578b",
+      "key": "type:Contoso.Plugins/Contoso.Plugins.ContactCreatePostOperation",
+      "parentId": "5a4ef0f0-f377-578d-9bed-d4d804d84373",
+      "fields": {
+        "name": "Contoso.Plugins.ContactCreatePostOperation",
+        "typename": "Contoso.Plugins.ContactCreatePostOperation"
+      }
+    },
+    {
+      "kind": "Step",
+      "id": "cc989d30-229d-539f-90ee-de3f772b22ba",
+      "key": "step:Contoso.Plugins/Contoso.Plugins.AccountUpdatePreOperation|update|account|20",
+      "parentId": "3377f98f-ce1f-5677-89dd-468a04ee35f5",
+      "fields": {
+        "asyncautodelete": "false",
+        "configuration": null,
+        "description": "Validate account changes",
+        "filteringattributes": "creditlimit,name",
+        "mode": "0",
+        "name": "Contoso.Plugins.AccountUpdatePreOperation: Update of account",
+        "primaryobjecttypecode": "account",
+        "rank": "1",
+        "sdkmessage": "update",
+        "stage": "20"
+      }
+    },
+    {
+      "kind": "Step",
+      "id": "1908ee68-7a25-54ce-be6d-373307cb3f03",
+      "key": "step:Contoso.Plugins/Contoso.Plugins.ContactCreatePostOperation|create|contact|40",
+      "parentId": "291b3596-0bcd-5547-aa23-d330bb9e578b",
+      "fields": {
+        "asyncautodelete": "false",
+        "configuration": null,
+        "description": null,
+        "filteringattributes": null,
+        "mode": "1",
+        "name": "Contoso.Plugins.ContactCreatePostOperation: Create of contact",
+        "primaryobjecttypecode": "contact",
+        "rank": "1",
+        "sdkmessage": "create",
+        "stage": "40"
+      }
+    },
+    {
+      "kind": "Step",
+      "id": "06cd7af5-fafd-506b-9cfd-150bc0706fbc",
+      "key": "step:Contoso.Plugins/Contoso.Plugins.ContactCreatePostOperation|delete|contact|10",
+      "parentId": "291b3596-0bcd-5547-aa23-d330bb9e578b",
+      "fields": {
+        "asyncautodelete": "false",
+        "configuration": null,
+        "description": null,
+        "filteringattributes": null,
+        "mode": "0",
+        "name": "Contoso.Plugins.ContactCreatePostOperation: Delete of contact",
+        "primaryobjecttypecode": "contact",
+        "rank": "7",
+        "sdkmessage": "delete",
+        "stage": "10"
+      }
+    },
+    {
+      "kind": "Image",
+      "id": "4f67c302-d632-5154-b8c7-9596fbbedf3b",
+      "key": "img:step:Contoso.Plugins/Contoso.Plugins.AccountUpdatePreOperation|update|account|20|pre",
+      "parentId": "cc989d30-229d-539f-90ee-de3f772b22ba",
+      "fields": {
+        "attributes": "creditlimit,name",
+        "entityalias": "PreImage",
+        "imagetype": "0",
+        "name": "PreImage"
+      }
+    },
+    {
+      "kind": "Image",
+      "id": "c66abf90-275d-5bf4-838e-6dca89517037",
+      "key": "img:step:Contoso.Plugins/Contoso.Plugins.ContactCreatePostOperation|delete|contact|10|post",
+      "parentId": "06cd7af5-fafd-506b-9cfd-150bc0706fbc",
+      "fields": {
+        "attributes": "",
+        "entityalias": "PostImage",
+        "imagetype": "1",
+        "name": "PostImage"
+      }
+    },
+    {
+      "kind": "CustomApi",
+      "id": "ef1d530a-0210-5be7-b33e-ccdf4d837aa6",
+      "key": "api:contoso_calculatediscount",
+      "parentId": "86ec919d-9350-508f-98a1-d1982b9b2812",
+      "fields": {
+        "allowedcustomprocessingsteptype": "0",
+        "bindingtype": "0",
+        "boundentitylogicalname": null,
+        "displayname": "Calculate Discount",
+        "executeprivilegename": "prvContosoCalculateDiscount",
+        "isfunction": "false",
+        "isprivate": "false",
+        "name": "contoso_CalculateDiscount",
+        "uniquename": "contoso_CalculateDiscount"
+      }
+    },
+    {
+      "kind": "RequestParameter",
+      "id": "1887102e-3bb7-5dea-97ad-7618660c2f99",
+      "key": "apireq:contoso_calculatediscount|contoso_amount",
+      "parentId": "ef1d530a-0210-5be7-b33e-ccdf4d837aa6",
+      "fields": {
+        "isoptional": "false",
+        "name": "contoso_Amount",
+        "type": "8",
+        "uniquename": "contoso_Amount"
+      }
+    },
+    {
+      "kind": "RequestParameter",
+      "id": "3006fbcf-a1c1-5796-8530-24b7ad639756",
+      "key": "apireq:contoso_calculatediscount|contoso_customerid",
+      "parentId": "ef1d530a-0210-5be7-b33e-ccdf4d837aa6",
+      "fields": {
+        "isoptional": "true",
+        "name": "contoso_CustomerId",
+        "type": "5",
+        "uniquename": "contoso_CustomerId"
+      }
+    },
+    {
+      "kind": "ResponseProperty",
+      "id": "eb93e695-8164-59c4-b6bf-8be321c7bd5e",
+      "key": "apiresp:contoso_calculatediscount|contoso_discount",
+      "parentId": "ef1d530a-0210-5be7-b33e-ccdf4d837aa6",
+      "fields": {
+        "name": "contoso_Discount",
+        "type": "2",
+        "uniquename": "contoso_Discount"
+      }
+    }
+  ]
+}

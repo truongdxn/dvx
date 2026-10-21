@@ -7,5 +7,10 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dvx.Cli\Dvx.Cli.csproj" />
+    <!-- describe builds the sample itself (build=true); referencing it here orders the solution build only. -->
+    <ProjectReference Include="..\samples\Sample.Plugins\Sample.Plugins.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Snapshots\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
