@@ -70,6 +70,8 @@ in the solution CI builds. Any change that could change the ID of an unchanged i
 ```
 dotnet build
 dotnet test
+# net462 SDK tests on Linux (needs mono: apt-get install mono-runtime mono-devel)
+dotnet test tests/Dvx.Plugin.Sdk.Tests -p:IsTestProject=true
 ```
 
 (Extend this section as CLI commands become available.)
@@ -77,8 +79,14 @@ dotnet test
 ## Status
 
 - Design: SPEC v2 — SP0 + SP1 detailed, SP2–SP4 outlined; awaiting review
-- Current milestone: next is M1 (SDK + `Dvx.Testing`); gate S-A + S-F met. M1 tests are net462 —
-  run them on Windows
+- Current milestone: next is M2 (`AttributeReader`, `Identity`, `DesiredState`, `describe`); gate M1
+  met once confirmed on Windows
+- Completed: M1 — SDK attributes + runtime base classes, `Dvx.Testing` (41 net462 tests green on
+  mono; Windows run pending, user)
+  - Identity attribute properties (message, entity, stage, mode, unique names, field types) have
+    private setters: set only through constructor arguments
+  - `InMemoryOrganizationService` INFERRED behaviors to confirm in Spike C: case-insensitive string
+    equality, NotEqual excludes nulls; also open: `ParameterCollection` key casing, null output values
 - Completed: M0 — repo scaffold (`dotnet build` 0 warnings; `dotnet test` green, incl. Windows)
 - Completed: S-A — go, attribute shape unchanged (`docs/spikes/attribute-read.md`)
 - Completed: S-F — go; Linux `dotnet build` plus user-run VS 2026, CI image and net462 test checks
