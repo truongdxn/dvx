@@ -7,5 +7,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dvx.Core\Dvx.Core.csproj" />
+    <!-- Builds the net462 sample plugin; AttributeReaderTests locate its output through MSBuild. -->
+    <ProjectReference Include="..\samples\Sample.Plugins\Sample.Plugins.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
   </ItemGroup>
 </Project>

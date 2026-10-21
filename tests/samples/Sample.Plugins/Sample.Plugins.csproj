@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
+    <AssemblyName>Contoso.Plugins</AssemblyName>
+    <RootNamespace>Contoso.Plugins</RootNamespace>
+    <DvxProjectKind>Plugin</DvxProjectKind>
+    <!-- Test input for AttributeReader, not a test project. -->
+    <IsTestProject>false</IsTestProject>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CrmSdk.CoreAssemblies" />
+  </ItemGroup>
+  <Import Project="..\..\..\src\Dvx.Plugin.Sdk\Dvx.Plugin.Sdk.projitems" Label="Shared" />
 </Project>
