@@ -8,4 +8,11 @@
   <PropertyGroup Label="Configuration">
     <Import_RootNamespace>Dvx.Plugin.Sdk</Import_RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)DvxSdkInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Attributes\CustomApiAttributes.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Attributes\Enums.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Attributes\Markers.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Attributes\PluginStepAttribute.cs" />
+  </ItemGroup>
 </Project>
