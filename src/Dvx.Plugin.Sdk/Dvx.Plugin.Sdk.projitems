@@ -14,5 +14,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Attributes\Enums.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Attributes\Markers.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Attributes\PluginStepAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Runtime\PluginRuntime.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Runtime\PluginBase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Runtime\EntityPluginBase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Runtime\FlowBase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Runtime\CustomApiBase.cs" />
   </ItemGroup>
 </Project>

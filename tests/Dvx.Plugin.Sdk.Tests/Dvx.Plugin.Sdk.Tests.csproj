@@ -6,6 +6,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MSTest" />
+    <PackageReference Include="Microsoft.CrmSdk.CoreAssemblies" />
+    <PackageReference Include="FakeItEasy" />
   </ItemGroup>
   <Import Project="..\..\src\Dvx.Plugin.Sdk\Dvx.Plugin.Sdk.projitems" Label="Shared" />
   <Import Project="..\..\src\Dvx.Testing\Dvx.Testing.projitems" Label="Shared" />
