@@ -80,9 +80,11 @@ dotnet test tests/Dvx.Plugin.Sdk.Tests -p:IsTestProject=true
 
 - Design: SPEC v2 — SP0 + SP1 detailed, SP2–SP4 outlined; awaiting review
 - Current milestone: next is M2 (`AttributeReader`, `Identity`, `DesiredState`, `describe`); gate M1
-  met once confirmed on Windows
+  met
 - Completed: M1 — SDK attributes + runtime base classes, `Dvx.Testing` (41 net462 tests green on
-  mono; Windows run pending, user)
+  mono and on Windows, user-confirmed)
+- Repo `nuget.config` clears machine feeds and maps every package to nuget.org (NU1507 fix for
+  machines with extra feeds)
   - Identity attribute properties (message, entity, stage, mode, unique names, field types) have
     private setters: set only through constructor arguments
   - `InMemoryOrganizationService` INFERRED behaviors to confirm in Spike C: case-insensitive string
