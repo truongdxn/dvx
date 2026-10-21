@@ -27,7 +27,8 @@ public static class IdentityKeys
         Require(asm, nameof(asm));
         Require(type, nameof(type));
         Require(message, nameof(message));
-        if (string.IsNullOrWhiteSpace(entity))
+        // "none" is the literal Dataverse uses for global messages.
+        if (string.IsNullOrWhiteSpace(entity) || string.Equals(entity, "none", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException(
                 "global messages without a primary entity are not supported yet; identity key undefined in SPEC §7",

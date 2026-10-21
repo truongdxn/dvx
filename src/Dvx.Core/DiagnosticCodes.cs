@@ -21,6 +21,9 @@ public static class DiagnosticCodes
     /// <summary>A registration has no valid identity (e.g. a step without a primary entity).</summary>
     public const string IdentityInvalid = "DVX184";
 
+    /// <summary>A plugin type with a registration attribute cannot be instantiated by Dataverse (abstract or open generic).</summary>
+    public const string PluginTypeNotInstantiable = "DVX185";
+
     /// <summary>Duplicate component IDs or another internal error (exit 9).</summary>
     public const string Internal = "DVX190";
 }

@@ -29,6 +29,9 @@ public sealed class IdentityKeysTests
     [DataRow(null)]
     [DataRow("")]
     [DataRow("  ")]
+    [DataRow("none")]
+    [DataRow("None")]
+    [DataRow("NONE")]
     public void Step_WithoutEntity_Throws(string? entity) =>
         Assert.ThrowsExactly<ArgumentException>(() => IdentityKeys.Step("A", "T", "m", entity!, 20));
 

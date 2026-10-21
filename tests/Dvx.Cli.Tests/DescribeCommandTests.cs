@@ -116,6 +116,34 @@ public class DescribeCommandTests
     }
 
     [TestMethod]
+    public void Describe_LogsCommandPathWithoutRoot()
+    {
+        var (_, _, _, work) = Run("describe", "--project", "x.csproj", "--json");
+        try
+        {
+            string log = File.ReadAllText(Directory.GetFiles(Path.Combine(work, ".dvx", "logs"), "*.jsonl").Single());
+            StringAssert.Contains(log, "\"command\":\"describe\"");
+        }
+        finally
+        {
+            Directory.Delete(work, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void CommandPath_NestedCommand_JoinsNamesWithoutRoot()
+    {
+        var root = new System.CommandLine.RootCommand("dvx");
+        var sdk = new System.CommandLine.Command("sdk");
+        var sync = new System.CommandLine.Command("sync");
+        sdk.Subcommands.Add(sync);
+        root.Subcommands.Add(sdk);
+        Assert.AreEqual("sdk sync", Program.CommandPath(sync));
+        Assert.AreEqual("sdk", Program.CommandPath(sdk));
+        Assert.AreEqual("dvx", Program.CommandPath(root));
+    }
+
+    [TestMethod]
     public void Describe_UnexpectedException_Exit9WithErrorJson()
     {
         string work = Path.Combine(Path.GetTempPath(), "dvx-cli-" + Guid.NewGuid().ToString("N"));

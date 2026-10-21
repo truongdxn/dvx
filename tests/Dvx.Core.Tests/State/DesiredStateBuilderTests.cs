@@ -106,6 +106,17 @@ public class DesiredStateBuilderTests
     }
 
     [TestMethod]
+    [DataRow("none")]
+    [DataRow("None")]
+    public void Build_StepWithGlobalMessageEntityNone_ThrowsDvx184(string entity)
+    {
+        var step = new PluginStepInfo("Associate", entity, 20, 0, null, null, null, 1, null, false, null);
+        DvxReadException ex = Assert.ThrowsExactly<DvxReadException>(() => new DesiredStateBuilder().Build(Info(step)));
+        Assert.AreEqual("DVX184", ex.Code);
+        StringAssert.Contains(ex.Message, "global messages without a primary entity are not supported yet");
+    }
+
+    [TestMethod]
     public void Build_StepWithoutEntity_ThrowsReadException()
     {
         var step = new PluginStepInfo("Associate", "", 20, 0, null, null, null, 1, null, false, null);

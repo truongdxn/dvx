@@ -34,21 +34,8 @@ public static class ProjectOutputResolver
             throw new DvxReadException(DiagnosticCodes.BuildFailed, "Project file '" + projectPath + "' does not exist.");
         }
 
-        string target = build ? "Build" : "ResolveAssemblyReferences";
         string dotnet = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") is { Length: > 0 } host ? host : "dotnet";
-
-        var startInfo = new ProcessStartInfo(dotnet)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-        startInfo.ArgumentList.Add("msbuild");
-        startInfo.ArgumentList.Add(projectPath);
-        startInfo.ArgumentList.Add("-t:" + target);
-        startInfo.ArgumentList.Add("-nologo");
-        startInfo.ArgumentList.Add("-getProperty:TargetPath");
-        startInfo.ArgumentList.Add("-getItem:ReferencePath");
+        ProcessStartInfo startInfo = BuildStartInfo(projectPath, build, dotnet);
 
         string stdout;
         string stderr;
@@ -127,6 +114,39 @@ public static class ProjectOutputResolver
         {
             throw new DvxReadException(DiagnosticCodes.BuildFailed, "Unexpected MSBuild output for '" + projectPath + "': " + ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Builds the MSBuild child process. A real build restores first (dotnet msbuild does not restore on its
+    /// own); inherited MSBuild variables of a host MSBuild/VS are removed so the child uses its own SDK.
+    /// </summary>
+    internal static ProcessStartInfo BuildStartInfo(string projectPath, bool build, string dotnet)
+    {
+        string target = build ? "Build" : "ResolveAssemblyReferences";
+        var startInfo = new ProcessStartInfo(dotnet)
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        startInfo.ArgumentList.Add("msbuild");
+        startInfo.ArgumentList.Add(projectPath);
+        if (build) startInfo.ArgumentList.Add("-restore");
+        startInfo.ArgumentList.Add("-t:" + target);
+        startInfo.ArgumentList.Add("-nologo");
+        startInfo.ArgumentList.Add("-nodeReuse:false");
+        startInfo.ArgumentList.Add("-getProperty:TargetPath");
+        startInfo.ArgumentList.Add("-getItem:ReferencePath");
+
+        foreach (string key in startInfo.Environment.Keys.ToArray())
+        {
+            if (key.StartsWith("MSBuild", StringComparison.OrdinalIgnoreCase))
+            {
+                startInfo.Environment.Remove(key);
+            }
+        }
+
+        return startInfo;
     }
 
     private static string Summarize(string stdout, string stderr)

@@ -28,13 +28,18 @@ public sealed class AttributeReader
         ArgumentNullException.ThrowIfNull(referencePaths);
 
         string dllFullPath = Path.GetFullPath(dllPath);
-        string directory = Path.GetDirectoryName(dllFullPath)!;
-        // Plugin folder first (it carries Microsoft.Xrm.Sdk.dll), then compile-time references.
-        IEnumerable<string> candidates = Directory.GetFiles(directory, "*.dll").Concat(referencePaths);
-        var resolver = new PathAssemblyResolver(candidates.Distinct(StringComparer.OrdinalIgnoreCase));
+        if (!File.Exists(dllFullPath))
+        {
+            throw new DvxReadException(DiagnosticCodes.AssemblyUnreadable, "Plugin assembly '" + dllFullPath + "' does not exist.");
+        }
 
         try
         {
+            string directory = Path.GetDirectoryName(dllFullPath)!;
+            // Plugin folder first (it carries Microsoft.Xrm.Sdk.dll), then compile-time references.
+            IEnumerable<string> candidates = Directory.GetFiles(directory, "*.dll").Concat(referencePaths);
+            var resolver = new PathAssemblyResolver(candidates.Distinct(StringComparer.OrdinalIgnoreCase));
+
             using var context = new MetadataLoadContext(resolver, "mscorlib");
             Assembly assembly = context.LoadFromAssemblyPath(dllFullPath);
             EnsureReferencesResolve(context, assembly);
@@ -43,6 +48,14 @@ public sealed class AttributeReader
         catch (FileNotFoundException ex)
         {
             throw new DvxReadException(DiagnosticCodes.AssemblyUnreadable, "A referenced assembly could not be resolved: " + ex.Message);
+        }
+        catch (Exception ex) when (ex is BadImageFormatException or FileLoadException or IOException or UnauthorizedAccessException)
+        {
+            throw new DvxReadException(DiagnosticCodes.AssemblyUnreadable, "Plugin assembly '" + dllFullPath + "' could not be read: " + ex.Message);
+        }
+        catch (Exception ex) when (ex is InvalidCastException or FormatException or OverflowException)
+        {
+            throw new DvxReadException(DiagnosticCodes.AttributeInvalid, "An SDK attribute argument in '" + dllFullPath + "' has an unexpected shape: " + ex.Message);
         }
     }
 
@@ -75,15 +88,29 @@ public sealed class AttributeReader
             throw new DvxReadException(DiagnosticCodes.AssemblyUnreadable, "Types of '" + name.Name + "' could not be loaded: " + details);
         }
 
+        // Read the SDK version first so a future attribute-shape change surfaces as a version problem.
+        string sdkVersion = ReadSdkVersion(types);
+
         var pluginTypes = new List<PluginTypeInfo>();
+        var notInstantiable = new List<string>();
         var entities = new List<EntityConstantsInfo>();
         foreach (Type type in types.OrderBy(t => t.FullName, StringComparer.Ordinal))
         {
             PluginTypeInfo? pluginType = ReadPluginType(type);
-            if (pluginType != null) pluginTypes.Add(pluginType);
+            if (pluginType != null)
+            {
+                if (type.IsAbstract || type.ContainsGenericParameters) notInstantiable.Add(type.FullName!);
+                pluginTypes.Add(pluginType);
+            }
 
             EntityConstantsInfo? entity = ReadEntityConstants(type);
             if (entity != null) entities.Add(entity);
+        }
+
+        if (notInstantiable.Count > 0)
+        {
+            throw new DvxReadException(DiagnosticCodes.PluginTypeNotInstantiable,
+                "plugin type cannot be instantiated by Dataverse: " + string.Join(", ", notInstantiable));
         }
 
         return new AssemblyInfo(
@@ -91,7 +118,7 @@ public sealed class AttributeReader
             name.Version ?? new Version(0, 0, 0, 0),
             string.IsNullOrEmpty(name.CultureName) ? "neutral" : name.CultureName,
             ToHex(name.GetPublicKeyToken()),
-            ReadSdkVersion(types),
+            sdkVersion,
             pluginTypes,
             entities);
     }

@@ -70,6 +70,8 @@ in the solution CI builds. Any change that could change the ID of an unchanged i
 ```
 dotnet build
 dotnet test
+# describe a plugin project (builds it, prints component IDs)
+dotnet run --project src/Dvx.Cli -- describe --project <csproj> [--json]
 # net462 SDK tests on Linux (needs mono: apt-get install mono-runtime mono-devel)
 dotnet test tests/Dvx.Plugin.Sdk.Tests -p:IsTestProject=true
 ```

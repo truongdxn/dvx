@@ -40,7 +40,7 @@ public static class Program
             root.Subcommands.Add(DescribeCommand.Create(jsonOption, stdout, stderr, workingDirectory, outcome, describe));
 
             ParseResult parseResult = root.Parse(args);
-            command = parseResult.CommandResult.Command.Name;
+            command = CommandPath(parseResult.CommandResult.Command);
             optionNames = OptionNames(parseResult);
 
             if (parseResult.Errors.Count > 0)
@@ -66,7 +66,7 @@ public static class Program
             try
             {
                 string root = outcome.RepoRoot ?? CommandLog.FindRepoRoot(workingDirectory) ?? Path.GetFullPath(workingDirectory);
-                                new CommandLog().Append(root, command, optionNames, exitCode, outcome.DiagnosticCodes, stopwatch.Elapsed);
+                new CommandLog().Append(root, command, optionNames, exitCode, outcome.DiagnosticCodes, stopwatch.Elapsed);
             }
             catch (Exception ex)
             {
@@ -76,6 +76,20 @@ public static class Program
         }
 
         return exitCode;
+    }
+
+    /// <summary>Full command path without the root (e.g. "describe", "sdk sync"); "dvx" for the root itself.</summary>
+    internal static string CommandPath(Command command)
+    {
+        var names = new List<string>();
+        for (Command? current = command; current != null; current = (current.Parents.FirstOrDefault() as Command))
+        {
+            if (current is RootCommand) break;
+            names.Add(current.Name);
+        }
+
+        names.Reverse();
+        return names.Count == 0 ? "dvx" : string.Join(" ", names);
     }
 
     /// <summary>Names of options the user typed, taken from the parser's option tokens; values are never recorded.</summary>
