@@ -87,7 +87,8 @@ Out of scope for all of v1:
 - Plugin and test projects are **SDK-style** csproj targeting `net462`.
 - A plugin project references only `Microsoft.CrmSdk.CoreAssemblies` (compile-time) and shared
   projects. Anything else is a verify error.
-- Plugin projects carry `<DvxProjectKind>Plugin</DvxProjectKind>` (written by `dvx new`).
+- Plugin projects carry `<DvxProjectKind>Plugin</DvxProjectKind>`; test projects carry
+  `<DvxProjectKind>Test</DvxProjectKind>` (both written by `dvx new`) (D30).
 
 ### 4.3 Layout
 
@@ -163,9 +164,12 @@ Config discovery: `dvx.json` at the `.sln` directory; walk up for `dvx.repo.json
   difference.
 - `Dvx.Analyzers.dll` is the only committed binary (accepted exception, checksum-verified).
 - `Dvx.targets` (imported by the generated `Directory.Build.targets`):
+  - identifies projects only by `DvxProjectKind` (`Plugin` / `Test`, D30)
   - adds `<Analyzer Include="build/dvx/analyzers/Dvx.Analyzers.dll" />` to plugin and test projects
   - adds `<InternalsVisibleTo Include="$(AssemblyName).Tests" />` to plugin projects
-  - adds the FakeItEasy package reference to test projects
+  - adds the FakeItEasy package reference to test projects; the version works with central package
+    management without a FakeItEasy pin, with the consumer's own pin (the consumer's pin wins), and
+    without central package management (Spike F, `docs/spikes/vendoring.md`)
   - runs no dvx command during build (there is no lock file to sync)
 
 ---
@@ -781,6 +785,14 @@ Section numbers cited in D1–D29 refer to SPEC v1.1. Struck-through decisions a
   (Create/Retrieve/Update/Delete/RetrieveMultiple with basic QueryExpression); FakeItEasy (MIT,
   approved) covers everything else (special messages, failure injection). The SP4 plugin-development
   skill explains when to use which.
+
+- D30 Test projects are identified by `<DvxProjectKind>Test</DvxProjectKind>`, alongside `Plugin`;
+  `Dvx.targets` keys analyzer, `InternalsVisibleTo` and FakeItEasy injection only on `DvxProjectKind`
+  (4.2, 4.5). Proposed by Spike F, approved.
+
+- D31 `Dvx.Analyzers` uses Roslyn analyzer release tracking (`AnalyzerReleases.Shipped.md` /
+  `AnalyzerReleases.Unshipped.md` as `AdditionalFiles`) instead of suppressing RS2008; every rule ID
+  is declared there. No extra package. Approved after Spike F.
 
 ### Asking
 

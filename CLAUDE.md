@@ -77,13 +77,13 @@ dotnet test
 ## Status
 
 - Design: SPEC v2 — SP0 + SP1 detailed, SP2–SP4 outlined; awaiting review
-- Current milestone: next is M1 (SDK + `Dvx.Testing`). Gate: S-F VS 2026 / CI image checks still
-  pending (user, Windows) — see `docs/spikes/vendoring.md`
-- Completed: M0 — repo scaffold (`dotnet build` 0 warnings; `dotnet test` green)
+- Current milestone: next is M1 (SDK + `Dvx.Testing`); gate S-A + S-F met. M1 tests are net462 —
+  run them on Windows
+- Completed: M0 — repo scaffold (`dotnet build` 0 warnings; `dotnet test` green, incl. Windows)
 - Completed: S-A — go, attribute shape unchanged (`docs/spikes/attribute-read.md`)
-- Completed (partial): S-F — provisional go; confirmed only `dotnet build` with SDK 8.0.426 on Linux;
-  VS 2026, real CI image and net462 test execution NOT CONFIRMED (`docs/spikes/vendoring.md`,
-  re-run steps in `spikes/vendoring/README.md`)
+- Completed: S-F — go; Linux `dotnet build` plus user-run VS 2026, CI image and net462 test checks
+  (`docs/spikes/vendoring.md`)
+- Approved after S-F: SPEC D30 (`DvxProjectKind=Test`), D31 (analyzer release-tracking files)
 - Spike code lives in `spikes/` (throwaway, not in `dvx.sln`)
 - net462 `LangVersion` 7.3 / `Nullable` disable live in `Directory.Build.targets` (a TargetFramework
   condition in `.props` never matches)

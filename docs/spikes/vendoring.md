@@ -79,6 +79,11 @@ fully met until the VS 2026 and CI image rows below are confirmed by the user. A
 shows CS8032 or the analyzer does not load; fallback in that case is to rebuild against an older Roslyn
 (D28 revisit).
 
+**Update 2026-10-21: go.** The user ran the Windows checks (VS 2026, real CI image, net462 test execution
+via `spikes/vendoring/README.md`) and reported them passing. The NOT CONFIRMED rows below are confirmed by
+that report. Proposals 2 (`DvxProjectKind=Test`) and the RS2008 handling are approved as SPEC D30 and
+D31.
+
 ## Confirmed vs inferred
 
 | Item | Status |
