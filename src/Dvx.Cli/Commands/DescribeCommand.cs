@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using Dvx.Contracts;
+using Dvx.Core;
 using Dvx.Core.Logging;
 using Dvx.Core.Reading;
 using Dvx.Core.State;
@@ -19,23 +20,23 @@ internal sealed class CommandOutcome
 
 internal static class DescribeCommand
 {
-    public static Command Create(Option<bool> jsonOption, TextWriter stdout, TextWriter stderr, string workingDirectory, CommandOutcome outcome)
+    public static Command Create(Option<bool> jsonOption, TextWriter stdout, TextWriter stderr, string workingDirectory, CommandOutcome outcome, Func<string, DescribeResult> describe)
     {
         var project = new Option<string>("--project") { Description = "Path to the plugin .csproj.", Required = true };
         var command = new Command("describe", "Show the desired registration with identity keys and IDs.");
         command.Options.Add(project);
         command.SetAction(parseResult => Run(
-            parseResult.GetValue(project)!, parseResult.GetValue(jsonOption), stdout, stderr, workingDirectory, outcome));
+            parseResult.GetValue(project)!, parseResult.GetValue(jsonOption), stdout, stderr, workingDirectory, outcome, describe));
         return command;
     }
 
-    private static int Run(string projectArgument, bool json, TextWriter stdout, TextWriter stderr, string workingDirectory, CommandOutcome outcome)
+    private static int Run(string projectArgument, bool json, TextWriter stdout, TextWriter stderr, string workingDirectory, CommandOutcome outcome, Func<string, DescribeResult> describe)
     {
         string projectPath = Path.GetFullPath(projectArgument, workingDirectory);
         if (!File.Exists(projectPath))
         {
             return Fail(ExitCodes.Usage, json, stdout, stderr, outcome,
-                Output.Error("DVX001", "Project file '" + projectArgument + "' does not exist."));
+                Output.Error(DiagnosticCodes.Usage, "Project file '" + projectArgument + "' does not exist."));
         }
 
         outcome.RepoRoot = CommandLog.FindRepoRoot(workingDirectory)
@@ -44,7 +45,7 @@ internal static class DescribeCommand
         try
         {
             stderr.Write("Building " + Path.GetFileName(projectPath) + "...\n");
-            DescribeResult result = DescribeService.Describe(projectPath);
+            DescribeResult result = describe(projectPath);
             if (json) Output.WriteJson(stdout, result);
             else Output.WriteDescribeText(stdout, result);
             return ExitCodes.Success;
@@ -55,7 +56,7 @@ internal static class DescribeCommand
         }
         catch (DuplicateComponentIdException ex)
         {
-            return Fail(ExitCodes.Internal, json, stdout, stderr, outcome, Output.Error("DVX900", ex.Message));
+            return Fail(ExitCodes.Internal, json, stdout, stderr, outcome, Output.Error(DiagnosticCodes.Internal, ex.Message));
         }
     }
 

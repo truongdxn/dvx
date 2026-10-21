@@ -10,4 +10,7 @@
     <ProjectReference Include="..\Dvx.Core\Dvx.Core.csproj" />
     <ProjectReference Include="..\Dvx.Contracts\Dvx.Contracts.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dvx.Cli.Tests" />
+  </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 {
   "diagnostics": [
     {
-      "code": "DVX001",
+      "code": "DVX090",
       "severity": "error",
       "message": "Project file 'does/not/exist.csproj' does not exist.",
       "file": null,

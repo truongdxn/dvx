@@ -33,7 +33,7 @@ public class DescribeCommandTests
     }
 
     private static string ReadSnapshot(string name) =>
-        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Snapshots", name));
+        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Snapshots", name)).Replace("\r\n", "\n", StringComparison.Ordinal);
 
     [TestMethod]
     public void Describe_Json_MatchesSnapshot()
@@ -74,7 +74,7 @@ public class DescribeCommandTests
         try
         {
             Assert.AreEqual(2, exit);
-            StringAssert.Contains(output, "\"DVX001\"");
+            StringAssert.Contains(output, "\"DVX090\"");
         }
         finally
         {
@@ -107,6 +107,46 @@ public class DescribeCommandTests
             string log = File.ReadAllText(Directory.GetFiles(Path.Combine(work, ".dvx", "logs"), "*.jsonl").Single());
             StringAssert.Contains(log, "\"--project\"");
             StringAssert.Contains(log, "\"--json\"");
+            Assert.IsFalse(log.Contains("secret-name", StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(work, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Describe_UnexpectedException_Exit9WithErrorJson()
+    {
+        string work = Path.Combine(Path.GetTempPath(), "dvx-cli-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(work);
+        string project = FindRepoFile("tests", "samples", "Sample.Plugins", "Sample.Plugins.csproj");
+        try
+        {
+            var stdout = new StringWriter();
+            int exit = Program.Run(
+                new[] { "describe", "--project", project, "--json" }, stdout, new StringWriter(), work,
+                _ => throw new IOException("boom"));
+            Assert.AreEqual(9, exit);
+            StringAssert.Contains(stdout.ToString(), "\"code\": \"DVX190\"");
+            string log = File.ReadAllText(Directory.GetFiles(Path.Combine(work, ".dvx", "logs"), "*.jsonl").Single());
+            StringAssert.Contains(log, "\"DVX190\"");
+            StringAssert.Contains(log, "\"exitCode\":9");
+        }
+        finally
+        {
+            Directory.Delete(work, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    public void Describe_LogsOptionNamesOnly_EqualsForm()
+    {
+        var (_, _, _, work) = Run("describe", "--project=secret-name.csproj", "--json");
+        try
+        {
+            string log = File.ReadAllText(Directory.GetFiles(Path.Combine(work, ".dvx", "logs"), "*.jsonl").Single());
+            StringAssert.Contains(log, "\"--project\"");
             Assert.IsFalse(log.Contains("secret-name", StringComparison.Ordinal));
         }
         finally

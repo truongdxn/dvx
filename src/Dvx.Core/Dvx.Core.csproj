@@ -8,4 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Dvx.Contracts\Dvx.Contracts.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Dvx.Core.Tests" />
+  </ItemGroup>
 </Project>

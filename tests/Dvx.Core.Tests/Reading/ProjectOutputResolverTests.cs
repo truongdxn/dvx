@@ -16,4 +16,21 @@ public class ProjectOutputResolverTests
         Assert.AreEqual("DVX181", ex.Code);
         StringAssert.Contains(ex.Message, "does not exist");
     }
+
+    [TestMethod]
+    public void Resolve_Timeout_KillsProcessAndThrowsDvx181()
+    {
+        string? dir = AppContext.BaseDirectory;
+        string project = "";
+        while (dir != null && !File.Exists(project = Path.Combine(dir, "tests", "samples", "Sample.Plugins", "Sample.Plugins.csproj")))
+        {
+            dir = Path.GetDirectoryName(dir);
+        }
+
+        Assert.IsNotNull(dir);
+        DvxReadException ex = Assert.ThrowsExactly<DvxReadException>(
+            () => ProjectOutputResolver.Resolve(project, build: false, TimeSpan.FromMilliseconds(1)));
+        Assert.AreEqual("DVX181", ex.Code);
+        StringAssert.Contains(ex.Message, "did not finish");
+    }
 }

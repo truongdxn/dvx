@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Dvx.Core.Reading;
 
@@ -20,6 +21,8 @@ public static class ProjectOutputResolver
     /// <summary>Upper bound for one MSBuild run; the process tree is killed when it is exceeded.</summary>
     internal static readonly TimeSpan BuildTimeout = TimeSpan.FromMinutes(10);
 
+    private static readonly TimeSpan DrainTimeout = TimeSpan.FromSeconds(30);
+
     public static ProjectOutput Resolve(string projectPath, bool build) => Resolve(projectPath, build, BuildTimeout);
 
     internal static ProjectOutput Resolve(string projectPath, bool build, TimeSpan timeout)
@@ -28,7 +31,7 @@ public static class ProjectOutputResolver
         projectPath = Path.GetFullPath(projectPath);
         if (!File.Exists(projectPath))
         {
-            throw new DvxReadException("DVX181", "Project file '" + projectPath + "' does not exist.");
+            throw new DvxReadException(DiagnosticCodes.BuildFailed, "Project file '" + projectPath + "' does not exist.");
         }
 
         string target = build ? "Build" : "ResolveAssemblyReferences";
@@ -53,7 +56,7 @@ public static class ProjectOutputResolver
         try
         {
             using Process process = Process.Start(startInfo)
-                ?? throw new DvxReadException("DVX181", "Could not start '" + dotnet + "'.");
+                ?? throw new DvxReadException(DiagnosticCodes.BuildFailed, "Could not start '" + dotnet + "'.");
             // Read stderr asynchronously so a full pipe cannot block the child.
             var stderrTask = process.StandardError.ReadToEndAsync();
             var stdoutTask = process.StandardOutput.ReadToEndAsync();
@@ -68,24 +71,37 @@ public static class ProjectOutputResolver
                     // The process ended on its own between the timeout and the kill.
                 }
 
-                throw new DvxReadException("DVX181",
+                throw new DvxReadException(DiagnosticCodes.BuildFailed,
                     "MSBuild for '" + projectPath + "' did not finish within " + timeout.TotalSeconds.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " seconds and was stopped.");
             }
 
-            // Parameterless WaitForExit lets the redirected streams drain completely.
-            process.WaitForExit();
+            // Bound the pipe drain too: a grandchild holding the pipes open must not hang dvx.
+            if (!Task.WaitAll(new Task[] { stdoutTask, stderrTask }, DrainTimeout))
+            {
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+                {
+                    // Already gone.
+                }
+
+                throw new DvxReadException(DiagnosticCodes.BuildFailed, "MSBuild output for '" + projectPath + "' could not be read to the end.");
+            }
+
             stdout = stdoutTask.GetAwaiter().GetResult();
             stderr = stderrTask.GetAwaiter().GetResult();
             exitCode = process.ExitCode;
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
-            throw new DvxReadException("DVX181", "Could not start '" + dotnet + "': " + ex.Message);
+            throw new DvxReadException(DiagnosticCodes.BuildFailed, "Could not start '" + dotnet + "': " + ex.Message);
         }
 
         if (exitCode != 0)
         {
-            throw new DvxReadException("DVX181",
+            throw new DvxReadException(DiagnosticCodes.BuildFailed,
                 "MSBuild failed for '" + projectPath + "' (exit code " + exitCode + "): " + Summarize(stdout, stderr));
         }
 
@@ -95,7 +111,7 @@ public static class ProjectOutputResolver
             string? targetPath = doc.RootElement.GetProperty("Properties").GetProperty("TargetPath").GetString();
             if (string.IsNullOrEmpty(targetPath))
             {
-                throw new DvxReadException("DVX181", "MSBuild returned no TargetPath for '" + projectPath + "'.");
+                throw new DvxReadException(DiagnosticCodes.BuildFailed, "MSBuild returned no TargetPath for '" + projectPath + "'.");
             }
 
             var references = new List<string>();
@@ -109,7 +125,7 @@ public static class ProjectOutputResolver
         }
         catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
         {
-            throw new DvxReadException("DVX181", "Unexpected MSBuild output for '" + projectPath + "': " + ex.Message);
+            throw new DvxReadException(DiagnosticCodes.BuildFailed, "Unexpected MSBuild output for '" + projectPath + "': " + ex.Message);
         }
     }
 

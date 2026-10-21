@@ -42,7 +42,7 @@ public sealed class AttributeReader
         }
         catch (FileNotFoundException ex)
         {
-            throw new DvxReadException("DVX180", "A referenced assembly could not be resolved: " + ex.Message);
+            throw new DvxReadException(DiagnosticCodes.AssemblyUnreadable, "A referenced assembly could not be resolved: " + ex.Message);
         }
     }
 
@@ -56,7 +56,7 @@ public sealed class AttributeReader
             }
             catch (FileNotFoundException)
             {
-                throw new DvxReadException("DVX180", (reference.Name ?? reference.FullName) + " could not be resolved");
+                throw new DvxReadException(DiagnosticCodes.AssemblyUnreadable, (reference.Name ?? reference.FullName) + " could not be resolved");
             }
         }
     }
@@ -72,7 +72,7 @@ public sealed class AttributeReader
         catch (ReflectionTypeLoadException ex)
         {
             string details = string.Join("; ", ex.LoaderExceptions.Where(e => e != null).Select(e => e!.Message).Distinct());
-            throw new DvxReadException("DVX180", "Types of '" + name.Name + "' could not be loaded: " + details);
+            throw new DvxReadException(DiagnosticCodes.AssemblyUnreadable, "Types of '" + name.Name + "' could not be loaded: " + details);
         }
 
         var pluginTypes = new List<PluginTypeInfo>();
@@ -87,7 +87,7 @@ public sealed class AttributeReader
         }
 
         return new AssemblyInfo(
-            name.Name ?? throw new DvxReadException("DVX180", "The assembly has no name."),
+            name.Name ?? throw new DvxReadException(DiagnosticCodes.AssemblyUnreadable, "The assembly has no name."),
             name.Version ?? new Version(0, 0, 0, 0),
             string.IsNullOrEmpty(name.CultureName) ? "neutral" : name.CultureName,
             ToHex(name.GetPublicKeyToken()),
@@ -101,7 +101,7 @@ public sealed class AttributeReader
         Type? info = types.FirstOrDefault(t => t.FullName == SdkInfoName);
         FieldInfo? field = info?.GetField("Version", AllMembers);
         if (field?.GetRawConstantValue() is string version) return version;
-        throw new DvxReadException("DVX183", "DvxSdkInfo not found");
+        throw new DvxReadException(DiagnosticCodes.SdkNotFound, "DvxSdkInfo not found");
     }
 
     private static string ToHex(byte[]? token) =>
@@ -143,7 +143,7 @@ public sealed class AttributeReader
     private static PluginStepInfo ReadStep(Type type, CustomAttributeData attribute)
     {
         IList<CustomAttributeTypedArgument> args = attribute.ConstructorArguments;
-        if (args.Count != 4) throw new DvxReadException("DVX182", Where(type, attribute) + " has an unexpected constructor.");
+        if (args.Count != 4) throw new DvxReadException(DiagnosticCodes.AttributeInvalid, Where(type, attribute) + " has an unexpected constructor.");
         var named = NamedArguments(attribute);
 
         return new PluginStepInfo(
@@ -163,7 +163,7 @@ public sealed class AttributeReader
     private static CustomApiInfo ReadCustomApi(Type type, CustomAttributeData attribute)
     {
         IList<CustomAttributeTypedArgument> args = attribute.ConstructorArguments;
-        if (args.Count != 1) throw new DvxReadException("DVX182", Where(type, attribute) + " has an unexpected constructor.");
+        if (args.Count != 1) throw new DvxReadException(DiagnosticCodes.AttributeInvalid, Where(type, attribute) + " has an unexpected constructor.");
         var named = NamedArguments(attribute);
 
         var parameters = new List<CustomApiParamInfo>();
@@ -198,11 +198,11 @@ public sealed class AttributeReader
                 IList<CustomAttributeTypedArgument> args = attribute.ConstructorArguments;
                 if (args.Count != 2)
                 {
-                    throw new DvxReadException("DVX182", dataType.FullName + "." + property.Name + " has an unexpected parameter attribute.");
+                    throw new DvxReadException(DiagnosticCodes.AttributeInvalid, dataType.FullName + "." + property.Name + " has an unexpected parameter attribute.");
                 }
 
                 string uniqueName = args[0].Value as string
-                    ?? throw new DvxReadException("DVX182", dataType.FullName + "." + property.Name + " has no unique name.");
+                    ?? throw new DvxReadException(DiagnosticCodes.AttributeInvalid, dataType.FullName + "." + property.Name + " has no unique name.");
                 result.Add(new CustomApiParamInfo(
                     uniqueName,
                     Convert.ToInt32(args[1].Value, CultureInfo.InvariantCulture),
@@ -260,7 +260,7 @@ public sealed class AttributeReader
 
     private static string RequiredString(CustomAttributeTypedArgument argument, Type type, CustomAttributeData attribute, string parameter) =>
         argument.Value as string
-            ?? throw new DvxReadException("DVX182", Where(type, attribute) + " has a null '" + parameter + "'.");
+            ?? throw new DvxReadException(DiagnosticCodes.AttributeInvalid, Where(type, attribute) + " has a null '" + parameter + "'.");
 
     private static string? NamedString(Dictionary<string, CustomAttributeTypedArgument> named, string name) =>
         named.TryGetValue(name, out CustomAttributeTypedArgument value) ? value.Value as string : null;
@@ -280,14 +280,14 @@ public sealed class AttributeReader
         if (!named.TryGetValue(name, out CustomAttributeTypedArgument value) || value.Value == null) return null;
         if (value.Value is not IReadOnlyCollection<CustomAttributeTypedArgument> elements)
         {
-            throw new DvxReadException("DVX182", Where(type, attribute) + " has an unreadable '" + name + "'.");
+            throw new DvxReadException(DiagnosticCodes.AttributeInvalid, Where(type, attribute) + " has an unreadable '" + name + "'.");
         }
 
         var result = new List<string>(elements.Count);
         foreach (CustomAttributeTypedArgument element in elements)
         {
             result.Add(element.Value as string
-                ?? throw new DvxReadException("DVX182", Where(type, attribute) + " has a null element in '" + name + "'."));
+                ?? throw new DvxReadException(DiagnosticCodes.AttributeInvalid, Where(type, attribute) + " has a null element in '" + name + "'."));
         }
 
         return result;

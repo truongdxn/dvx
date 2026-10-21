@@ -114,6 +114,16 @@ public class DesiredStateBuilderTests
     }
 
     [TestMethod]
+    public void Build_EmptyTypeName_ThrowsReadException()
+    {
+        var info = new AssemblyInfo("Contoso.Plugins", new Version(1, 0, 0, 0), "neutral", "", "1.0.0",
+            new[] { new PluginTypeInfo("", null, Array.Empty<PluginStepInfo>(), null, true) },
+            Array.Empty<EntityConstantsInfo>());
+        DvxReadException ex = Assert.ThrowsExactly<DvxReadException>(() => new DesiredStateBuilder().Build(info));
+        Assert.AreEqual("DVX184", ex.Code);
+    }
+
+    [TestMethod]
     public void ImmutableFields_MatchSpec()
     {
         CollectionAssert.AreEquivalent(

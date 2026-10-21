@@ -17,6 +17,19 @@ public sealed class DesiredStateBuilder
     {
         ArgumentNullException.ThrowIfNull(info);
 
+        try
+        {
+            return BuildCore(info);
+        }
+        catch (ArgumentException ex)
+        {
+            // An empty assembly, type or API name: no valid identity key exists (SPEC §7).
+            throw new DvxReadException(DiagnosticCodes.IdentityInvalid, "A registration has no valid identity: " + ex.Message);
+        }
+    }
+
+    private static DesiredState BuildCore(AssemblyInfo info)
+    {
         var components = new List<Component>();
         Component assembly = Make(ComponentKind.Assembly, IdentityKeys.Assembly(info.Name), null, Fields(
             ("name", info.Name),
@@ -71,7 +84,7 @@ public sealed class DesiredStateBuilder
         catch (ArgumentException ex)
         {
             // Typically a step without a primary entity: its identity key is not defined (SPEC §7).
-            throw new DvxReadException("DVX184", type.FullName + ": step '" + step.Message + "' has no valid identity: " + ex.Message);
+            throw new DvxReadException(DiagnosticCodes.IdentityInvalid, type.FullName + ": step '" + step.Message + "' has no valid identity: " + ex.Message);
         }
 
         Component stepComponent = Make(ComponentKind.Step, stepKey, typeComponent.Id, Fields(
