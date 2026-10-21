@@ -5,6 +5,10 @@
     <HasSharedItems>true</HasSharedItems>
     <SharedGUID>0b9decea-c81d-5f01-8004-c72d906f73ba</SharedGUID>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)InMemoryOrganizationService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PluginTestContext.cs" />
+  </ItemGroup>
   <PropertyGroup Label="Configuration">
     <Import_RootNamespace>Dvx.Testing</Import_RootNamespace>
   </PropertyGroup>
