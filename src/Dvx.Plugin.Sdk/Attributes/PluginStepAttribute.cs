@@ -15,10 +15,10 @@ namespace Dvx.Plugin.Sdk
             Rank = 1;
         }
 
-        public string Message { get; set; }
-        public string PrimaryEntity { get; set; }
-        public Stage Stage { get; set; }
-        public Mode Mode { get; set; }
+        public string Message { get; private set; }
+        public string PrimaryEntity { get; private set; }
+        public Stage Stage { get; private set; }
+        public Mode Mode { get; private set; }
         public string[] FilteringAttributes { get; set; }
         public string[] PreImageAttributes { get; set; }
         public string[] PostImageAttributes { get; set; }

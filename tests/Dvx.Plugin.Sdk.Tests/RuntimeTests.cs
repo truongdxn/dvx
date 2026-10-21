@@ -154,6 +154,17 @@ namespace Dvx_Plugin_Sdk_Tests
         }
 
         [TestMethod]
+        public void CustomApi_NonAssignableInput_ThrowsNamingParameterWithoutValue()
+        {
+            var s = FakeServices.Create();
+            s.Inputs["contoso_Amount"] = "secret-value-123";
+            var ex = Assert.ThrowsExactly<InvalidPluginExecutionException>(
+                () => new DiscountApi().Execute(s.Provider));
+            StringAssert.Contains(ex.Message, "contoso_Amount");
+            Assert.IsFalse(ex.Message.Contains("secret-value-123"));
+        }
+
+        [TestMethod]
         public void Runtime_ImagesReadByFixedAliases()
         {
             var s = FakeServices.Create();

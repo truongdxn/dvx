@@ -11,7 +11,7 @@ namespace Dvx.Plugin.Sdk
             UniqueName = uniqueName;
         }
 
-        public string UniqueName { get; set; }
+        public string UniqueName { get; private set; }
         public CustomApiBindingType BindingType { get; set; }
         public string BoundEntityLogicalName { get; set; }
         public bool IsFunction { get; set; }
@@ -31,8 +31,8 @@ namespace Dvx.Plugin.Sdk
             Type = type;
         }
 
-        public string UniqueName { get; set; }
-        public CustomApiFieldType Type { get; set; }
+        public string UniqueName { get; private set; }
+        public CustomApiFieldType Type { get; private set; }
         public bool IsOptional { get; set; }
     }
 
@@ -46,7 +46,7 @@ namespace Dvx.Plugin.Sdk
             Type = type;
         }
 
-        public string UniqueName { get; set; }
-        public CustomApiFieldType Type { get; set; }
+        public string UniqueName { get; private set; }
+        public CustomApiFieldType Type { get; private set; }
     }
 }

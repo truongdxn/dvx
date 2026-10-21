@@ -127,5 +127,28 @@ namespace Dvx_Plugin_Sdk_Tests
                 typeof(CustomApiRequestParameterAttribute).GetCustomAttribute<AttributeUsageAttribute>().ValidOn);
             Assert.AreEqual("0.1.0", typeof(DvxSdkInfo).GetField("Version").GetValue(null));
         }
+
+        [TestMethod]
+        public void IdentityProperties_HaveNoPublicSetter()
+        {
+            var identity = new[]
+            {
+                typeof(PluginStepAttribute).GetProperty("Message"),
+                typeof(PluginStepAttribute).GetProperty("PrimaryEntity"),
+                typeof(PluginStepAttribute).GetProperty("Stage"),
+                typeof(PluginStepAttribute).GetProperty("Mode"),
+                typeof(CustomApiAttribute).GetProperty("UniqueName"),
+                typeof(CustomApiRequestParameterAttribute).GetProperty("UniqueName"),
+                typeof(CustomApiRequestParameterAttribute).GetProperty("Type"),
+                typeof(CustomApiResponsePropertyAttribute).GetProperty("UniqueName"),
+                typeof(CustomApiResponsePropertyAttribute).GetProperty("Type")
+            };
+            foreach (var p in identity)
+            {
+                Assert.IsNotNull(p);
+                var setter = p.GetSetMethod(false);
+                Assert.IsNull(setter, p.DeclaringType.Name + "." + p.Name + " must not have a public setter");
+            }
+        }
     }
 }

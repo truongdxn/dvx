@@ -164,6 +164,159 @@ namespace Dvx_Plugin_Sdk_Tests
             Assert.AreSame(ctx.Outputs, seen.OutputParameters);
         }
 
+        // ---- Finding 1: condition value normalisation ----
+
+        [TestMethod]
+        public void InMemory_Condition_OptionSetValueAttribute_MatchesRawInt()
+        {
+            var svc = new InMemoryOrganizationService();
+            var a = Account("A", "Oslo"); a["statuscode"] = new OptionSetValue(2);
+            var b = Account("B", "Oslo"); b["statuscode"] = new OptionSetValue(3);
+            svc.Seed(a, b);
+            var hit = Query(svc, "statuscode", ConditionOperator.Equal, 2).ToList();
+            Assert.AreEqual(1, hit.Count);
+            Assert.AreEqual("A", hit[0].GetAttributeValue<string>("name"));
+        }
+
+        [TestMethod]
+        public void InMemory_Condition_EntityReferenceAttribute_MatchesRawGuid()
+        {
+            var svc = new InMemoryOrganizationService();
+            var owner = Guid.NewGuid();
+            var a = Account("A", "Oslo"); a["ownerid"] = new EntityReference("systemuser", owner);
+            var b = Account("B", "Oslo"); b["ownerid"] = new EntityReference("systemuser", Guid.NewGuid());
+            svc.Seed(a, b);
+            var hit = Query(svc, "ownerid", ConditionOperator.Equal, owner).ToList();
+            Assert.AreEqual(1, hit.Count);
+            Assert.AreEqual("A", hit[0].GetAttributeValue<string>("name"));
+        }
+
+        [TestMethod]
+        public void InMemory_Condition_MoneyAttribute_MatchesRawDecimal_AndNumericWidening()
+        {
+            var svc = new InMemoryOrganizationService();
+            var a = Account("A", "Oslo"); a["revenue"] = new Money(100m); a["count"] = 5;
+            var b = Account("B", "Oslo"); b["revenue"] = new Money(200m); b["count"] = 6;
+            svc.Seed(a, b);
+            Assert.AreEqual(1, Query(svc, "revenue", ConditionOperator.Equal, 100m).Count());
+            Assert.AreEqual(1, Query(svc, "revenue", ConditionOperator.Equal, 200).Count());
+            Assert.AreEqual(1, Query(svc, "count", ConditionOperator.Equal, 5L).Count());
+            Assert.AreEqual(1, Query(svc, "count", ConditionOperator.Equal, 6.0d).Count());
+        }
+
+        [TestMethod]
+        public void InMemory_Condition_PrimaryKey_MatchesEntityId()
+        {
+            var svc = new InMemoryOrganizationService();
+            var id = svc.Create(Account("A", "Oslo"));
+            svc.Create(Account("B", "Oslo"));
+            var hit = Query(svc, "accountid", ConditionOperator.Equal, id).ToList();
+            Assert.AreEqual(1, hit.Count);
+            Assert.AreEqual(id, hit[0].Id);
+        }
+
+        [TestMethod]
+        public void InMemory_Condition_StringComparisonIsCaseInsensitive()
+        {
+            var svc = new InMemoryOrganizationService();
+            svc.Seed(Account("A", "Oslo"));
+            Assert.AreEqual(1, Query(svc, "city", ConditionOperator.Equal, "OSLO").Count());
+        }
+
+        [TestMethod]
+        public void InMemory_Condition_UncomparableTypes_ThrowNotSupportedNamingTypes()
+        {
+            var svc = new InMemoryOrganizationService();
+            svc.Seed(Account("A", "Oslo"));
+            var ex = Assert.ThrowsExactly<NotSupportedException>(
+                () => Query(svc, "city", ConditionOperator.Equal, new DateTime(2020, 1, 1)).ToList());
+            StringAssert.Contains(ex.Message, "String");
+            StringAssert.Contains(ex.Message, "DateTime");
+        }
+
+        // ---- Finding 2: projection ----
+
+        [TestMethod]
+        public void InMemory_Retrieve_OmitsNullAttributes_AndUpdateWithNullRemoves()
+        {
+            var svc = new InMemoryOrganizationService();
+            var id = svc.Create(Account("A", "Oslo"));
+            var patch = new Entity("account", id);
+            patch["city"] = null;
+            svc.Update(patch);
+
+            var r = svc.Retrieve("account", id, new ColumnSet(true));
+            Assert.IsFalse(r.Contains("city"));
+            var q = new QueryExpression("account") { ColumnSet = new ColumnSet("city", "name") };
+            Assert.IsFalse(svc.RetrieveMultiple(q).Entities[0].Contains("city"));
+            Assert.IsFalse(svc.Get("account", id).Contains("city"));
+        }
+
+        [TestMethod]
+        public void InMemory_Retrieve_IncludesPrimaryIdAttribute_WhenRequested()
+        {
+            var svc = new InMemoryOrganizationService();
+            var id = svc.Create(Account("A", "Oslo"));
+            Assert.AreEqual(id, svc.Retrieve("account", id, new ColumnSet("accountid")).GetAttributeValue<Guid>("accountid"));
+            Assert.AreEqual(id, svc.Retrieve("account", id, new ColumnSet(true)).GetAttributeValue<Guid>("accountid"));
+            Assert.IsFalse(svc.Retrieve("account", id, new ColumnSet("name")).Contains("accountid"));
+            var q = new QueryExpression("account") { ColumnSet = new ColumnSet(true) };
+            Assert.AreEqual(id, svc.RetrieveMultiple(q).Entities[0].GetAttributeValue<Guid>("accountid"));
+        }
+
+        // ---- Finding 3: provider ----
+
+        [TestMethod]
+        public void Context_ParentContextIsNull_AndProviderServices()
+        {
+            var ctx = PluginTestContext.For("Update", "account", Stage.PreOperation);
+            IServiceProvider provider = null;
+            IPluginExecutionContext seen = null;
+            ctx.Execute(new ProviderCapturePlugin(sp =>
+            {
+                provider = sp;
+                seen = (IPluginExecutionContext)sp.GetService(typeof(IPluginExecutionContext));
+            }));
+            Assert.IsNull(seen.ParentContext);
+            Assert.IsNull(provider.GetService(typeof(IDisposable)));
+            Assert.AreSame(seen, provider.GetService(typeof(IExecutionContext)));
+            Assert.IsNotNull(provider.GetService(typeof(IPluginExecutionContext7)));
+            Assert.IsNotNull(provider.GetService(typeof(IPluginExecutionContext2)));
+        }
+
+        private sealed class ProviderCapturePlugin : IPlugin
+        {
+            private readonly Action<IServiceProvider> _capture;
+            public ProviderCapturePlugin(Action<IServiceProvider> capture) { _capture = capture; }
+            public void Execute(IServiceProvider sp) { _capture(sp); }
+        }
+
+        // ---- Finding 6: paging ----
+
+        [TestMethod]
+        public void InMemory_PageInfo_PageZeroOrOne_ReturnsAllMatches()
+        {
+            var svc = new InMemoryOrganizationService();
+            svc.Seed(Account("A", "Oslo"), Account("B", "Oslo"), Account("C", "Oslo"));
+            foreach (var page in new[] { 0, 1 })
+            {
+                var q = new QueryExpression("account") { ColumnSet = new ColumnSet("name") };
+                q.PageInfo = new PagingInfo { PageNumber = page, Count = 2 };
+                var result = svc.RetrieveMultiple(q);
+                Assert.AreEqual(3, result.Entities.Count);
+                Assert.IsFalse(result.MoreRecords);
+            }
+        }
+
+        [TestMethod]
+        public void InMemory_PageInfo_PageTwo_NotSupported()
+        {
+            var svc = new InMemoryOrganizationService();
+            var q = new QueryExpression("account") { ColumnSet = new ColumnSet("name") };
+            q.PageInfo = new PagingInfo { PageNumber = 2, Count = 2 };
+            Assert.ThrowsExactly<NotSupportedException>(() => svc.RetrieveMultiple(q));
+        }
+
         private static Entity Account(string name, string city)
         {
             var e = new Entity("account");

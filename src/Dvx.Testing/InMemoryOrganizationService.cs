@@ -47,6 +47,9 @@ namespace Dvx.Testing
                 throw new InvalidOperationException("Duplicate record: " + entity.LogicalName + " " + id);
             var copy = Clone(entity);
             copy.Id = id;
+            // Dataverse does not store null attributes.
+            foreach (var key in copy.Attributes.Where(kv => kv.Value == null).Select(kv => kv.Key).ToList())
+                copy.Attributes.Remove(key);
             table[id] = copy;
             return id;
         }
@@ -60,7 +63,12 @@ namespace Dvx.Testing
         {
             if (entity == null) throw new ArgumentNullException("entity");
             var stored = Find(entity.LogicalName, entity.Id);
-            foreach (var kv in entity.Attributes) stored[kv.Key] = CloneValue(kv.Value);
+            foreach (var kv in entity.Attributes)
+            {
+                // Setting an attribute to null removes it (Dataverse does not return null attributes).
+                if (kv.Value == null) stored.Attributes.Remove(kv.Key);
+                else stored[kv.Key] = CloneValue(kv.Value);
+            }
         }
 
         public void Delete(string entityName, Guid id)
@@ -76,8 +84,9 @@ namespace Dvx.Testing
                 throw new NotSupportedException("RetrieveMultiple query type not supported: " + (query == null ? "null" : query.GetType().Name));
             if (qe.LinkEntities.Count > 0) throw new NotSupportedException("Link entities are not supported.");
             if (qe.Orders.Count > 0) throw new NotSupportedException("Orders are not supported.");
-            if (qe.PageInfo != null && (qe.PageInfo.Count > 0 || qe.PageInfo.PageNumber > 1))
-                throw new NotSupportedException("Paging is not supported.");
+            // Page 0/1 with any Count returns every match (MoreRecords stays false); other pages are unsupported.
+            if (qe.PageInfo != null && qe.PageInfo.PageNumber > 1)
+                throw new NotSupportedException("Paging beyond page 1 is not supported (PageNumber " + qe.PageInfo.PageNumber + ").");
             if (qe.TopCount.HasValue) throw new NotSupportedException("TopCount is not supported.");
             var criteria = qe.Criteria;
             if (criteria != null)
@@ -127,40 +136,72 @@ namespace Dvx.Testing
         private static bool Matches(Entity e, ConditionExpression c)
         {
             object actual;
-            var has = e.Attributes.TryGetValue(c.AttributeName, out actual) && actual != null;
+            var has = TryGetValue(e, c.AttributeName, out actual);
             switch (c.Operator)
             {
                 case ConditionOperator.Null: return !has;
                 case ConditionOperator.NotNull: return has;
                 case ConditionOperator.Equal: return c.Values.Count > 0 && has && ValueEquals(actual, c.Values[0]);
-                case ConditionOperator.NotEqual: return has && c.Values.Count > 0 && !ValueEquals(actual, c.Values[0]); // SQL semantics: null never matches
+                // INFERRED (SQL semantics: a null attribute never satisfies NotEqual); to be confirmed in Spike C.
+                case ConditionOperator.NotEqual: return has && c.Values.Count > 0 && !ValueEquals(actual, c.Values[0]);
                 default: throw new NotSupportedException("Condition operator not supported: " + c.Operator);
             }
         }
 
+        // A condition on "<logicalname>id" addresses the primary key, which lives in Entity.Id.
+        private static bool TryGetValue(Entity e, string attribute, out object value)
+        {
+            if (string.Equals(attribute, e.LogicalName + "id", StringComparison.Ordinal))
+            {
+                value = e.Id;
+                return e.Id != Guid.Empty;
+            }
+            return e.Attributes.TryGetValue(attribute, out value) && value != null;
+        }
+
         private static bool ValueEquals(object a, object b)
         {
-            var ra = a as EntityReference;
-            var rb = b as EntityReference;
-            if (ra != null && rb != null) return ra.Id == rb.Id && ra.LogicalName == rb.LogicalName;
-            var oa = a as OptionSetValue;
-            var ob = b as OptionSetValue;
-            if (oa != null && ob != null) return oa.Value == ob.Value;
-            var ma = a as Money;
-            var mb = b as Money;
-            if (ma != null && mb != null) return ma.Value == mb.Value;
-            return object.Equals(a, b);
+            var na = Normalize(a);
+            var nb = Normalize(b);
+            if (na == null || nb == null)
+                throw new NotSupportedException("Null condition values are not supported (use the Null/NotNull operators).");
+            if (na is decimal && nb is decimal) return (decimal)na == (decimal)nb;
+            var sa = na as string;
+            var sb = nb as string;
+            // INFERRED from Dataverse's default case-insensitive collation; to be confirmed in Spike C.
+            if (sa != null && sb != null) return string.Equals(sa, sb, StringComparison.OrdinalIgnoreCase);
+            if (na.GetType() == nb.GetType()) return object.Equals(na, nb);
+            throw new NotSupportedException("Cannot compare condition value of type " + b.GetType().Name
+                + " with attribute value of type " + a.GetType().Name + ".");
+        }
+
+        // EntityReference -> Guid; OptionSetValue, Money and every numeric type -> decimal (compared by value).
+        private static object Normalize(object value)
+        {
+            var er = value as EntityReference;
+            if (er != null) return er.Id;
+            var os = value as OptionSetValue;
+            if (os != null) return (decimal)os.Value;
+            var m = value as Money;
+            if (m != null) return m.Value;
+            if (value is byte || value is short || value is int || value is long || value is float || value is double)
+                return Convert.ToDecimal(value);
+            return value;
         }
 
         private static Entity Project(Entity source, ColumnSet columns)
         {
             var result = new Entity(source.LogicalName, source.Id);
             if (columns == null) return result;
+            var idAttribute = source.LogicalName + "id";
             foreach (var kv in source.Attributes)
             {
+                if (kv.Value == null) continue; // Dataverse does not return null attributes
                 if (columns.AllColumns || columns.Columns.Contains(kv.Key))
                     result[kv.Key] = CloneValue(kv.Value);
             }
+            if (columns.AllColumns || columns.Columns.Contains(idAttribute))
+                result[idAttribute] = source.Id;
             return result;
         }
 

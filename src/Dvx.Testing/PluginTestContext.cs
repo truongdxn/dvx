@@ -6,7 +6,11 @@ using Microsoft.Xrm.Sdk;
 
 namespace Dvx.Testing
 {
-    /// <summary>Builds a fake plugin execution context around an <see cref="InMemoryOrganizationService"/>.</summary>
+    /// <summary>
+    /// Builds a fake plugin execution context around an <see cref="InMemoryOrganizationService"/>.
+    /// <see cref="Outputs"/> and <see cref="Trace"/> accumulate across multiple <see cref="Execute"/> calls
+    /// on the same instance; create a new context per scenario for isolated results.
+    /// </summary>
     internal sealed class PluginTestContext
     {
         private static readonly Guid FixedUserId = new Guid("00000000-0000-0000-0000-0000000000a1");
@@ -77,7 +81,16 @@ namespace Dvx.Testing
 
         private IServiceProvider BuildProvider()
         {
-            var context = A.Fake<IPluginExecutionContext>();
+            // The IPluginExecutionContext2..7 interfaces ship in the referenced Microsoft.Xrm.Sdk 9.0.2.60
+            // (verified by reflection at dev time); the fake implements them all so plugins asking for a
+            // newer interface get the same configured context.
+            var context = A.Fake<IPluginExecutionContext>(o => o
+                .Implements<IPluginExecutionContext2>()
+                .Implements<IPluginExecutionContext3>()
+                .Implements<IPluginExecutionContext4>()
+                .Implements<IPluginExecutionContext5>()
+                .Implements<IPluginExecutionContext6>()
+                .Implements<IPluginExecutionContext7>());
             var tracing = A.Fake<ITracingService>();
             var factory = A.Fake<IOrganizationServiceFactory>();
             var provider = A.Fake<IServiceProvider>();
@@ -92,6 +105,7 @@ namespace Dvx.Testing
             A.CallTo(() => context.PreEntityImages).Returns(_preImages);
             A.CallTo(() => context.PostEntityImages).Returns(_postImages);
             A.CallTo(() => context.SharedVariables).Returns(new ParameterCollection());
+            A.CallTo(() => context.ParentContext).Returns(null);
             A.CallTo(() => context.UserId).Returns(FixedUserId);
             A.CallTo(() => context.InitiatingUserId).Returns(FixedUserId);
             if (target != null) A.CallTo(() => context.PrimaryEntityId).Returns(target.Id);
@@ -101,7 +115,18 @@ namespace Dvx.Testing
                     Trace.Add(args != null && args.Length > 0 ? string.Format(format, args) : format));
             A.CallTo(() => factory.CreateOrganizationService(A<Guid?>._)).Returns(Service);
 
-            A.CallTo(() => provider.GetService(typeof(IPluginExecutionContext))).Returns(context);
+            // Unknown service types resolve to null (like a real provider); only the configured ones are returned.
+            A.CallTo(() => provider.GetService(A<Type>._)).Returns(null);
+            foreach (var contextType in new[]
+            {
+                typeof(IExecutionContext), typeof(IPluginExecutionContext), typeof(IPluginExecutionContext2),
+                typeof(IPluginExecutionContext3), typeof(IPluginExecutionContext4), typeof(IPluginExecutionContext5),
+                typeof(IPluginExecutionContext6), typeof(IPluginExecutionContext7)
+            })
+            {
+                var type = contextType;
+                A.CallTo(() => provider.GetService(type)).Returns(context);
+            }
             A.CallTo(() => provider.GetService(typeof(ITracingService))).Returns(tracing);
             A.CallTo(() => provider.GetService(typeof(IOrganizationServiceFactory))).Returns(factory);
             return provider;
