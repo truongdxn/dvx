@@ -106,4 +106,5 @@ dotnet test tests/Dvx.Plugin.Sdk.Tests -p:IsTestProject=true
   - Placeholder tests use `Assert.IsNotNull(...)`: `Assert.IsTrue(true)` fails MSTEST0032 under
     warnings as errors.
   - Not yet added: `packages.lock.json` / locked restore, VSIX packages (Spike D).
+- Decided before M2: SPEC D32 (Spike C scope extended), D33 (identity frozen as SPEC §7)
 - Open questions: SPEC §15

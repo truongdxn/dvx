@@ -569,7 +569,7 @@ decision, and what is confirmed vs inferred. Spikes B and C use the scratch envi
 |---|---|---|
 | A | Can `MetadataLoadContext` read `internal` attributes compiled from the shared project, including `string[]`, enums and `DvxSdkInfo.Version`? | Change how attributes are declared |
 | B | Structural fixtures (Appendix A); is step/image XML structure identical across messages; can a managed package be packed from generated source; step name format | Per-message fixtures (D15 fallback); or import into a build environment and export managed |
-| C | Client-supplied IDs for all component tables; transactions; in-place mode update; solution header; two assemblies with the same name and different versions; minimum privileges of the application user | Adjust section 9 |
+| C | Client-supplied IDs for all component tables; transactions; in-place mode update; solution header; two assemblies with the same name and different versions; minimum privileges of the application user; runtime behaviors assumed by the SDK and `Dvx.Testing` (D32) | Adjust section 9; adjust SDK / `Dvx.Testing` |
 | D | VSIX model on VS 2026 (out-of-process Extensibility vs VSSDK): toolbar, tool window, dialogs, child process launch, coexistence with Copilot | Use the other model |
 | F | Vendoring: `Directory.Build.targets` import, analyzer loaded by path, `InternalsVisibleTo`, Roslyn 4.8 on VS 2026 and the real CI image | Change analyzer distribution |
 
@@ -793,6 +793,15 @@ Section numbers cited in D1–D29 refer to SPEC v1.1. Struck-through decisions a
 - D31 `Dvx.Analyzers` uses Roslyn analyzer release tracking (`AnalyzerReleases.Shipped.md` /
   `AnalyzerReleases.Unshipped.md` as `AdditionalFiles`) instead of suppressing RS2008; every rule ID
   is declared there. No extra package. Approved after Spike F.
+
+- D32 Spike C also confirms the runtime behaviors M1 assumed (marked INFERRED in code): Custom API
+  `InputParameters` / `OutputParameters` key casing; whether a null output value is accepted;
+  case sensitivity of string `Equal` conditions; whether `NotEqual` excludes records where the
+  attribute is null. Results adjust the SDK and `InMemoryOrganizationService`.
+
+- D33 Identity (section 7) confirmed before M2: namespace GUID
+  `b3f5d2a1-7c4e-4f8a-9d61-2e0c5a7b9f13`, the key formats in the section 7 table and its
+  normalization rules are frozen from M2 on.
 
 ### Asking
 
